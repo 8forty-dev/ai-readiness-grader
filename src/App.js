@@ -139,13 +139,13 @@ const Glossary = () => (
 // Main App Component
 const App = () => {
   const [url, setUrl] = useState('');
-  const [report, setReport] = useState(null); // Changed to 'report' (singular)
+  const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copyStatus, setCopyStatus] = useState('');
 
   // This function handles the actual fetching from the backend for a single URL
-  const processUrl = async (inputUrl) => { // Renamed to processUrl for clarity
+  const processUrl = async (inputUrl) => {
     try {
       // Call the backend's scraping endpoint
       const response = await fetch('https://8forty.pythonanywhere.com/scrape', { // Using single scrape endpoint
@@ -163,8 +163,8 @@ const App = () => {
       const data = await response.json();
       
       // The backend should return a single report data object
-      if (data) { // Check if data exists
-        setReport(data); // Set singular report
+      if (data) {
+        setReport(data);
       } else {
         setError('Backend did not return report in expected format.');
       }
@@ -194,7 +194,7 @@ const App = () => {
 
 
   const copyReportToClipboard = () => {
-    if (!report) return; // Check for singular report
+    if (!report) return;
 
     const htmlReportContent = `
       <style>
