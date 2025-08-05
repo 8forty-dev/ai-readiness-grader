@@ -1,143 +1,148 @@
 import React, { useState } from 'react';
 
-// This function generates a comprehensive report based on GMB and AI readiness.
-const generateReport = (url) => {
-  return new Promise((resolve) => {
-    // Simulate a network delay.
-    setTimeout(() => {
-      // Simulate GMB data, which may or may not include a business name.
-      const gmbData = {
-        businessName: Math.random() > 0.5 ? 'Creative Local Services' : null, // Simulate a 50% chance of having a GMB name
-        // Other GMB data would be here...
-      };
+// This function now uses a backend API to get real data for the report.
+const generateReport = async (url) => {
+  try {
+    // --- Step 1: Send the URL to your Python backend for scraping ---
+    const response = await fetch('https://8forty.pythonanywhere.com/scrape', { // Updated backend URL
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url }),
+    });
 
-      // Extract a business name, prioritizing the GMB data.
-      let businessName = '';
-      if (gmbData.businessName) {
-        businessName = gmbData.businessName;
-      } else {
-        try {
-          const hostname = new URL(url).hostname;
-          businessName = hostname.replace('www.', '').split('.')[0];
-          businessName = businessName.charAt(0).toUpperCase() + businessName.slice(1);
-        } catch (e) {
-          businessName = 'Local Business';
-        }
+    if (!response.ok) {
+      throw new Error('Failed to fetch data from the backend.');
+    }
+
+    const data = await response.json();
+    
+    // --- Step 2: Use the real data from the backend to generate the report ---
+    
+    // Extract a business name, prioritizing the GMB data.
+    let businessName = data.gmbData.businessName || 'Local Business';
+    if (businessName === 'Local Business') {
+      try {
+        const hostname = new URL(url).hostname;
+        businessName = hostname.replace('www.', '').split('.')[0];
+        businessName = businessName.charAt(0).toUpperCase() + businessName.slice(1);
+      } catch (e) {
+        businessName = 'Local Business';
       }
+    }
 
-      // Simulate scores for all key readiness factors.
-      const gmbScore = Math.floor(Math.random() * 10) + 1;
-      const contentScore = Math.floor(Math.random() * 10) + 1;
-      const schemaScore = Math.floor(Math.random() * 10) + 1;
-      const technicalScore = Math.floor(Math.random() * 10) + 1;
-      const uxPerformanceScore = Math.floor(Math.random() * 10) + 1;
-      
-      const overallScore = Math.floor((gmbScore + contentScore + schemaScore + technicalScore + uxPerformanceScore) / 5);
-      const aiOverallScore = Math.floor((contentScore + schemaScore + technicalScore + uxPerformanceScore) / 4);
+    // Now, use real data to determine scores and issues.
+    // For this example, we'll use a mix of real and mock data.
+    const gmbScore = data.gmbData.reviews > 100 ? 9 : (data.gmbData.reviews > 50 ? 7 : 4);
+    const contentScore = Math.floor(Math.random() * 10) + 1; // You'd replace this with your LLM analysis
+    const schemaScore = data.websiteData.has_schema ? 9 : 2;
+    const technicalScore = data.websiteData.page_speed_score > 80 ? 9 : 5;
+    
+    const overallScore = Math.floor((gmbScore + contentScore + schemaScore + technicalScore) / 4);
+    const aiOverallScore = Math.floor((contentScore + schemaScore + technicalScore) / 3);
 
-      let readinessLevel;
-      if (overallScore >= 8) {
-        readinessLevel = "Excellent";
-      } else if (overallScore >= 6) {
-        readinessLevel = "Good";
-      } else if (overallScore >= 4) {
-        readinessLevel = "Fair";
-      } else {
-        readinessLevel = "Needs Improvement";
-      }
+    let readinessLevel;
+    if (overallScore >= 8) {
+      readinessLevel = "Excellent";
+    } else if (overallScore >= 6) {
+      readinessLevel = "Good";
+    } else if (overallScore >= 4) {
+      readinessLevel = "Fair";
+    } else {
+      readinessLevel = "Needs Improvement";
+    }
 
-      // Predefined issues and corresponding actions for the GBP report.
-      const gmbIssues = [
-        {
-          issue: "Incomplete Service and Product Listings",
-          impact: "When your core information (like hours, address, or phone number) is wrong or incomplete, it creates a poor customer experience. Google's AI, which can now call businesses on a user's behalf, will also get confused, leading to missed calls and lost leads. This inconsistency erodes trust with both customers and search engines.",
-          action: "We'll perform a complete audit of your profile and business citations to ensure all information is 100% accurate and consistent everywhere online. This provides a single source of truth for both customers and AI.",
-        },
-        {
-          issue: "Minimal Photo and Video Content",
-          impact: "GBP listings with professional photos and videos receive significantly more engagement than those without. Without visual content, your profile looks unappealing and less trustworthy, causing potential customers to choose a competitor with a more vibrant, complete listing.",
-          action: "We will add high-quality, geotagged photos and videos of your business, services, and products. This makes your listing more engaging and helps your business stand out in local search results.",
-        },
-        {
-          issue: "Low Volume of Recent Reviews",
-          impact: "Customer reviews are one of the most important local ranking factors. A low review count or a lack of recent reviews tells Google and potential customers that your business may be inactive or less reputable than competitors. This directly hurts your local search visibility and your ability to attract new business.",
-          action: "We will implement a Review Campaign to generate an influx of positive reviews. We'll also install an ongoing review management process to help you build a consistent stream of new reviews, boosting your ranking and credibility.",
-        },
-        {
-          issue: "No Posts or Updates",
-          impact: "Google Business Profile posts are a free way to share updates, offers, and events directly on your listing. By not using them, you're missing a key opportunity to attract attention, engage with your audience, and showcase what's new at your business.",
-          action: "We will create a monthly content calendar for your GBP, posting updates about your services, special offers, and company news. This keeps your profile fresh and shows Google that your business is active and engaged.",
-        },
-        {
-          issue: "Incorrect Business Categories",
-          impact: "Your primary and secondary business categories are the most crucial ranking factor for local searches. If they are incorrect, Google won't know what you do, and you won't show up for relevant searches. This is a common and easy-to-fix issue that has a huge impact on performance.",
-          action: "We'll research the most effective categories for your business and industry and update your profile to ensure you are correctly categorized. This guarantees that you appear in searches for the services you actually offer.",
-        },
-      ];
+    // Predefined issues and corresponding actions for the GBP report.
+    const gmbIssues = [
+      {
+        issue: "Incomplete Service and Product Listings",
+        impact: "When your core information (like hours, address, or phone number) is wrong or incomplete, it creates a poor customer experience. Google's AI, which can now call businesses on a user's behalf, will also get confused, leading to missed calls and lost leads. This inconsistency erodes trust with both customers and search engines.",
+        action: "We'll perform a complete audit of your profile and business citations to ensure all information is 100% accurate and consistent everywhere online. This provides a single source of truth for both customers and AI.",
+      },
+      {
+        issue: "Minimal Photo and Video Content",
+        impact: "GBP listings with professional photos and videos receive significantly more engagement than those without. Without visual content, your profile looks unappealing and less trustworthy, causing potential customers to choose a competitor with a more vibrant, complete listing.",
+        action: "We will add high-quality, geotagged photos and videos of your business, services, and products. This makes your listing more engaging and helps your business stand out in local search results.",
+      },
+      {
+        issue: "Low Volume of Recent Reviews",
+        impact: "Customer reviews are one of the most important local ranking factors. A low review count or a lack of recent reviews tells Google and potential customers that your business may be inactive or less reputable than competitors. This directly hurts your local search visibility and your ability to attract new business.",
+        action: "We will implement a Review Campaign to generate an influx of positive reviews. We'll also install an ongoing review management process to help you build a consistent stream of new reviews, boosting your ranking and credibility.",
+      },
+      {
+        issue: "No Posts or Updates",
+        impact: "Google Business Profile posts are a free way to share updates, offers, and events directly on your listing. By not using them, you're missing a key opportunity to attract attention, engage with your audience, and showcase what's new at your business.",
+        action: "We will create a monthly content calendar for your GBP, posting updates about your services, special offers, and company news. This keeps your profile fresh and shows Google that your business is active and engaged.",
+      },
+      {
+        issue: "Incorrect Business Categories",
+        impact: "Your primary and secondary business categories are the most crucial ranking factor for local searches. If they are incorrect, Google won't know what you do, and you won't show up for relevant searches. This is a common and easy-to-fix issue that has a huge impact on performance.",
+        action: "We'll research the most effective categories for your business and industry and update your profile to ensure you are correctly categorized. This guarantees that you appear in searches for the services you actually offer.",
+      },
+    ];
 
-      // Randomly select 3-5 issues for the report.
-      const selectedIssues = gmbIssues.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 3) + 3);
+    const selectedIssues = gmbIssues.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 3) + 3);
 
-      // Map scores to specific service recommendations for the AI section.
-      const aiNextSteps = [];
-      const aiScores = [
-        { score: contentScore, title: "Content Quality & E-E-A-T" },
-        { score: schemaScore, title: "Structured Data & Schema Markup" },
-        { score: uxPerformanceScore, title: "User Experience (UX) & Technical Health" },
-      ].sort((a, b) => a.score - b.score);
+    const aiNextSteps = [];
+    const aiScores = [
+      { score: contentScore, title: "Content Quality & E-E-A-T" },
+      { score: schemaScore, title: "Structured Data & Schema Markup" },
+      { score: technicalScore, title: "User Experience (UX) & Technical Health" },
+    ].sort((a, b) => a.score - b.score);
 
-      const topAiIssues = aiScores.slice(0, 3); // Get the top 3 lowest scores
+    const topAiIssues = aiScores.slice(0, 3);
 
-      if (topAiIssues.some(item => item.title.includes("Content"))) {
-        aiNextSteps.push("Content & Authority Building: We recommend a Strategic Content Creation plan to build a foundation of authoritative content that demonstrates E-E-A-T. This will help your content get cited in AI Overviews.");
-      }
-      if (topAiIssues.some(item => item.title.includes("Structured"))) {
-        aiNextSteps.push("Foundational Services: A Website Audit & Technical SEO package is crucial. We will implement structured data to make your content machine-readable for AI and improve your chances of being featured in rich results.");
-      }
-      if (topAiIssues.some(item => item.title.includes("Technical"))) {
-        aiNextSteps.push("Foundational Services: Our Website Audit & Technical SEO service can identify and fix critical issues like slow page speed and mobile-friendliness, which are foundational for both user experience and AI visibility.");
-      }
+    if (topAiIssues.some(item => item.title.includes("Content"))) {
+      aiNextSteps.push("Content & Authority Building: We recommend a Strategic Content Creation plan to build a foundation of authoritative content that demonstrates E-E-A-T. This will help your content get cited in AI Overviews.");
+    }
+    if (topAiIssues.some(item => item.title.includes("Structured"))) {
+      aiNextSteps.push("Foundational Services: A Website Audit & Technical SEO package is crucial. We will implement structured data to make your content machine-readable for AI and improve your chances of being featured in rich results.");
+    }
+    if (topAiIssues.some(item => item.title.includes("Technical"))) {
+      aiNextSteps.push("Foundational Services: Our Website Audit & Technical SEO service can identify and fix critical issues like slow page speed and mobile-friendliness, which are foundational for both user experience and AI visibility.");
+    }
 
-      // If all scores are high, provide a positive recommendation.
-      if (aiNextSteps.length === 0) {
-        aiNextSteps.push("Your site is performing well across the board for AI search readiness. We recommend an ongoing check-in to ensure you stay ahead of the curve with our Specialized & Consulting Services to maintain your competitive edge.");
-      }
-      
-      const reportData = {
-        businessName,
-        overallScore,
-        gmbReport: {
-          score: gmbScore,
-          overview: `Thank you for the opportunity to review your Google Business Profile (GBP). It's great to see that your company has an existing profile. You have a solid foundation with many glowing reviews that speak to your professionalism, punctuality, and quality of work. This is a huge asset! A strong GBP is more than just an online business card. It's your most important local marketing tool, acting as a virtual front door for potential customers. When someone in your area searches for a service you offer, your GBP is the most likely result they'll see. A well-optimized and active profile can significantly increase your visibility, drive more calls, and generate new leads, even if your website is not the top organic result.`,
-          issues: selectedIssues,
-          offer: `We understand that managing all these details can be time-consuming for a busy business owner. We can handle all of this for you! Our paid service includes a comprehensive **GBP Optimization** package that covers all of the above, along with ongoing management, a review strategy, and local citation building to ensure your business dominates local search results. Let's schedule a brief call to discuss how we can work together to implement this plan and turn your Google Business Profile into a powerful lead-generation machine for your business.`,
-        },
-        aiAnalysis: {
-          score: aiOverallScore,
-          overallSummary: `Your website's readiness for Google's AI-powered search is also a key part of your long-term strategy. The following analysis breaks down how well your site is positioned to be a trusted source for AI Overviews and other generative search features.`,
-          scores: [
-            {
-              title: "Content Quality & E-E-A-T",
-              summary: "AI-powered search prioritizes content that demonstrates Experience, Expertise, Authoritativeness, and Trustworthiness. Your content is a key factor in being cited by AI models.",
-              score: contentScore,
-            },
-            {
-              title: "Structured Data & Schema Markup",
-              summary: "Structured data (Schema markup) helps search engines and AI models understand your content's context. Implementing schema for FAQs and how-to guides is critical for rich results and AI Overviews.",
-              score: schemaScore,
-            },
-            {
-              title: "User Experience (UX) & Technical Health",
-              summary: "Core Web Vitals, page speed, and mobile-friendliness are essential for a good user experience and are foundational signals that Google's ranking systems (and AI) evaluate.",
-              score: uxPerformanceScore,
-            },
-          ],
-          nextSteps: aiNextSteps,
-        },
-      };
-      resolve(reportData);
-    }, 2000);
-  });
+    if (aiNextSteps.length === 0) {
+      aiNextSteps.push("Your site is performing well across the board for AI search readiness. We recommend an ongoing check-in to ensure you stay ahead of the curve with our Specialized & Consulting Services to maintain your competitive edge.");
+    }
+    
+    const reportData = {
+      businessName,
+      overallScore,
+      gmbReport: {
+        score: gmbScore,
+        overview: `Thank you for the opportunity to review your Google Business Profile (GBP). It's great to see that your company has an existing profile. You have a solid foundation with many glowing reviews that speak to your professionalism, punctuality, and quality of work. This is a huge asset! A strong GBP is more than just an online business card. It's your most important local marketing tool, acting as a virtual front door for potential customers. When someone in your area searches for a service you offer, your GBP is the most likely result they'll see. A well-optimized and active profile can significantly increase your visibility, drive more calls, and generate new leads, even if your website is not the top organic result.`,
+        issues: selectedIssues,
+        offer: `We understand that managing all these details can be time-consuming for a busy business owner. We can handle all of this for you! Our paid service includes a comprehensive **GBP Optimization** package that covers all of the above, along with ongoing management, a review strategy, and local citation building to ensure your business dominates local search results. Let's schedule a brief call to discuss how we can work together to implement this plan and turn your Google Business Profile into a powerful lead-generation machine for your business.`,
+      },
+      aiAnalysis: {
+        score: aiOverallScore,
+        overallSummary: `Your website's readiness for Google's AI-powered search is also a key part of your long-term strategy. The following analysis breaks down how well your site is positioned to be a trusted source for AI Overviews and other generative search features.`,
+        scores: [
+          {
+            title: "Content Quality & E-E-A-T",
+            summary: "AI-powered search prioritizes content that demonstrates Experience, Expertise, Authoritativeness, and Trustworthiness. Your content is a key factor in being cited by AI models.",
+            score: contentScore,
+          },
+          {
+            title: "Structured Data & Schema Markup",
+            summary: "Structured data (Schema markup) helps search engines and AI models understand your content's context. Implementing schema for FAQs and how-to guides is critical for rich results and AI Overviews.",
+            score: schemaScore,
+          },
+          {
+            title: "User Experience (UX) & Technical Health",
+            summary: "Core Web Vitals, page speed, and mobile-friendliness are essential for a good user experience and are foundational signals that Google's ranking systems (and AI) evaluate.",
+            score: uxPerformanceScore,
+          },
+        ],
+        nextSteps: aiNextSteps,
+      },
+    };
+    return reportData;
+  } catch (error) {
+    throw new Error(`An error occurred during the analysis: ${error.message}`);
+  }
 };
 
 // Component for the Glossary
@@ -526,3 +531,4 @@ const App = () => {
 };
 
 export default App;
+
